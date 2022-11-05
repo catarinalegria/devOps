@@ -1,10 +1,10 @@
-##  This Directory contains files and folders for the implementation of the Capstone Project
+# BOOKINFO 
 
-* Include a brief description of the application and of the solution and its components, configuration, implementation options, tools used, etc.
+see: https://istio.io/latest/docs/examples/bookinfo/
 
 When fully deployed, the application displays information about a book, similar to a single catalog entry of an online book store. Displayed on the page is a description of the book, book details (ISBN, number of pages, and so on), and a few book reviews.
 
-## Build Vagrant Environment that hosts the management node
+# Build Vagrant Environment that hosts the management node
 
 1- In the local repository, run the Vagrantfile and access the management node. In our solution, we used the Virtual Box to host the management node. 
 
@@ -26,7 +26,7 @@ The next bash steps will **ALL** be done inside the *mgmt node*.
 
 The public Cloud Platform chosen to deploy the application was Google Cloud Platform (gcp). 
 
-# 1 Set-up Google Cloud Platform
+## 1. Set-up Google Cloud Platform
 
 1- Open the following URL https://console.cloud.google.com/education (hopefully the user already has a functional account with a working CUPON code; otherwise, Lab4 explains in detail how to create the account and introduce the CUPON.)
 
@@ -57,8 +57,20 @@ Project Console (Dashboard).
 
 ![Screenshot](images/iam.png)
 
+7- In the column Actions, select Manage keys, that opens a new window and select Create new key:
 
-# 2 Provisone the application with Terraform
+![Screenshot](images/keys.png)
+
+8- After selecting Create new key, a pop-up window opens. Select the JSON checkbox which will download to your computer a Credentials file.
+
+![Screenshot](images/keys2.png)
+
+
+9- Save the file in the project/app/samples/bookinfo/terraform-ansible folder. There, edit the file *terraform-gcp-provider.tf* line 9 to have the correct name of the JSON credential file you downloaded.
+
+![Screenshot](images/json.png)
+
+## 2. Create the application's infrastructure in GCP using Terraform
 
 ```bash
 $ cd project/app/samples/bookinfo/terraform-ansible/
@@ -76,7 +88,7 @@ After running the terraform instructions, the IPs of the four instances created 
 
 ![Screenshot](images/vminstances.png)
 
-# Configure GCP Instances with Ansible
+# Configure the GCP Instances with Ansible
 
 1- In order for Ansible to access the machines and configure them, there is the need to populate the INVENTORY file, in this case named *gcphosts* , with the IP addresses(retrieved from the output of 'terraform apply').
 
