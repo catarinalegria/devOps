@@ -39,15 +39,10 @@ Vagrant.configure("2") do |config|
     # Shared folders
     if Vagrant::Util::Platform.windows? then
       # Configuration SPECIFIC for Windows 10 hosts
-      mgvb.vm.synced_folder "labs", "/home/vagrant/labs",
-        owner: "vagrant", group: "vagrant",
-        mount_options: ["dmode=775","fmode=755"]
       mgvb.vm.synced_folder "project", "/home/vagrant/project",
         owner: "vagrant", group: "vagrant",
         mount_options: ["dmode=775","fmode=755"]
     else
-      mgvb.vm.synced_folder "labs", "/home/vagrant/labs",
-        mount_options: ["dmode=775", "fmode=755"]
       mgvb.vm.synced_folder "project", "/home/vagrant/project",
         mount_options: ["dmode=775","fmode=755"]
 
