@@ -31,17 +31,65 @@ The public Cloud Platform chosen to deploy the application was Google Cloud Plat
 1- Open the following URL https://console.cloud.google.com/education (hopefully the user already has a functional account with a working CUPON code; otherwise, Lab4 explains in detail how to create the account and introduce the CUPON.)
 
 2- Create the Project. 
-   Select on the top Menu Bar the Organization/Projects drop
-down button, that will open a window for selecting and/or creating a Project, as illustrated in the following figure:
+   Select on the top Menu Bar the Organization/Projects drop down button, that will open a window for selecting and/or creating a Project, as illustrated in the following figure:
 
-![Screenshot](images/screenshot.png)
+![Screenshot](images/create.png)
 
-# Provisone the application with Terraform
+
+3- Select NEW PROJECT and give the following name: **agi-project**. 
+
+![Screenshot](images/create2.png)
+
+
+The system will then take some time (a minute or more) to create the Project. When complete, you will enter the
+Project Console (Dashboard).
+
+
+4- Now it's time to generate the Google Cloud credentials. For this, in the Google Cloud Console choose API & Services-> Enabled APIs and Services. There, you can see a button on top of the menu enabling APIS AND SERVICES, as following:
+
+![Screenshot](images/enable.png)
+
+5- Selecting that button opens a new window for selecting the type of API (as in the following Figure). In thatwindow search for **Compute Engine api**, select it and then click ENABLE.
+
+![Screenshot](images/enable2.png)
+
+6- When the API is enabled you can then, in the Google Cloud Console menu, choose IAMand Admin->Service Accounts. There, you see that a Service Account for the Compute Engine default service account is created, as shown:
+
+![Screenshot](images/iam.png)
+
+
+# 2 Provisone the application with Terraform
 
 ```bash
+$ cd project/app/samples/bookinfo/terraform-ansible/
+
+$ ssh-keygen -t rsa -b 4096
+
 $ terraform init
 
 $ terraform plan
 
 $ terraform apply
+```
+
+After running the terraform instructions, the IPs of the four instances created are outputted. You can also confirm that the instances were correctly created by going to the Google Cloud Console menu -> Compute Engine -> Vm instances, and you will see the following page: 
+
+![Screenshot](images/vminstances.png)
+
+# Configure GCP Instances with Ansible
+
+1- In order for Ansible to access the machines and configure them, there is the need to populate the INVENTORY file, in this case named *gcphosts* , with the IP addresses(retrieved from the output of 'terraform apply').
+
+2- Run the *playbook.yml* file to deploy and run each service
+
+```bash
+$ ansible-playbook playbook.yml
+
+```
+
+# Test the application by hitting productpage in the browser.
+
+```bash
+$ http://ip-of-product-page:9080
+
 ```
