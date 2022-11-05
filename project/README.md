@@ -1,6 +1,6 @@
 # BOOKINFO 
 
-see: https://istio.io/latest/docs/examples/bookinfo/
+See: https://istio.io/latest/docs/examples/bookinfo/
 
 When fully deployed, the application displays information about a book, similar to a single catalog entry of an online book store. Displayed on the page is a description of the book, book details (ISBN, number of pages, and so on), and a few book reviews.
 
