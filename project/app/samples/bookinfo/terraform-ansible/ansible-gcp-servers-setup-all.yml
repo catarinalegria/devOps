@@ -1,0 +1,211 @@
+---
+# file: ansible-gcp-servers-setup-all.yml
+# configures the server instances
+# This Playbook has Five Plays: one for critical configurations in all servers
+# A second one for installing software in the Details microservice
+# a third one to install software in the Ratings microservice
+# a forth one to configure the Product Page microservice
+# the last play installs software in the Reviews microservice
+
+# This First Play Sets up critical configuration on servers
+
+#- hosts: targets
+  # as the systems are not yet "known" by Ansible Facts cannot be gathered yet
+  gather_facts: no
+  remote_user: ubuntu
+  become: yes
+  become_method: sudo
+
+  pre_tasks:
+    # To operate remotely in critical files without direct user input
+    - name: Remove require tty - alt
+      lineinfile:
+        regexp: "requiretty"
+        dest: /etc/sudoers.d/os_defaults
+        state: absent
+    # Giving permissions in sudoers for system critical files (see https://docs.ansible.com/ansible/latest/modules/lineinfile_module.html)
+    - name: Validate the sudoers file before saving  not to require password
+      lineinfile:
+        dest: /etc/sudoers
+        state: present
+        regexp: '^%ADMIN ALL='
+        line: '%ADMIN ALL=(ALL) NOPASSWD: ALL'
+        validate: /usr/sbin/visudo -cf %s
+    # Install the SSH key on servers
+    - name: install ssh key
+      authorized_key:
+        user: ubuntu
+        key: "{{ lookup('file', '/home/vagrant/.ssh/id_rsa.pub') }}"
+        state: present 
+
+# Details Play that installs the required software 
+# tasks names are self explanatory
+- hosts: details
+  gather_facts: True
+  remote_user: ubuntu
+  become: yes
+  become_method: sudo
+
+  tasks:
+    
+    - name: Run command
+      shell: apt  install ruby
+
+    - name: Create directory
+      shell: mkdir -p /opt/microservices
+
+    - name: Add details.rb file
+      copy:
+        src: ~/home/vagrant/project/app/samples/bookinfo/src/details/details.rb
+        dest: /opt/microservices/
+ 
+    - name: run productpage.py script
+      shell: ruby /opt/microservices/details.rb 9080
+
+
+# Ratings Play that installs the required software 
+# tasks names are self explanatory
+- hosts: ratings
+  gather_facts: True
+  remote_user: ubuntu
+  become: yes
+  become_method: sudo
+
+  tasks:
+        
+    - name: Run command
+      shell: apt-get update
+    
+    - name: Run command
+      shell: apt-get install curl --no-install-recommends -y
+    
+    - name: Run command
+      shell: rm -rf /var/lib/apt/lists/*
+
+    - name: Run command
+      shell: curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
+  
+    - name: Run command
+      shell: apt-get install -y nodejs
+
+    - name: Create directory
+      shell: mkdir -p /opt/microservices
+
+    - name: Add package.json file
+      copy:
+        src: ~/home/vagrant/project/app/samples/bookinfo/src/ratings/package.json
+        dest: /opt/microservices/
+    
+    - name: Add ratings.js file
+      copy:
+        src: ~/home/vagrant/project/app/samples/bookinfo/src/ratings/ratings.js
+        dest: /opt/microservices/
+
+    - name:
+      shell: npm install
+      args:
+      	chdir: /opt/microservices
+
+    - name: run productpage.py script
+      shell: node /opt/microservices/ratings.js 9080
+
+# Product Page Play that installs the required software 
+# tasks names are self explanatory
+- hosts: productpage
+  gather_facts: True
+  remote_user: ubuntu
+  become: yes
+  become_method: sudo
+
+  tasks:
+    - name: Install the package "python"
+      ansible.builtin.apt:
+        name: python=3.8
+    
+    - name: Install the package "python3-pip"
+      ansible.builtin.apt:
+        name: python3-pip
+
+
+    - name: Add requirements.txt file
+      copy:
+        src: ~/home/vagrant/project/app/samples/bookinfo/src/productpage/requirements.txt
+        dest: ~/
+   
+    - name: Run command
+      shell: pip3 install -vvv --no-cache-dir -r requirements.txt
+
+    
+    - name: Add test-requirements.txt file
+      copy:
+        src: ~/home/vagrant/project/app/samples/bookinfo/src/productpage/test-requirements.txt
+        dest: ~/
+    
+    - name: Run command
+      shell: pip3 install --no-cache-dir -r test-requirements.txt
+
+
+    - name: Create directory
+      shell: mkdir -p /opt/microservices/
+
+    - name: Add productpage.py file
+      copy:
+        src: ~/home/vagrant/project/app/samples/bookinfo/src/productpage/productpage.py
+        dest: /opt/microservices/
+      
+    - name: Add tests/unit/*
+      copy:
+        src: ~/home/vagrant/project/app/samples/bookinfo/src/productpage/tests/unit/*
+        dest: /opt/microservices/
+
+    - name: Add templates
+      copy:
+        src: ~/home/vagrant/project/app/samples/bookinfo/src/productpage/templates
+        dest: /opt/microservices/
+
+    - name: Add static
+      copy:
+        src: ~/home/vagrant/project/app/samples/bookinfo/src/productpage/static
+        dest: /opt/microservices/
+    
+  
+    - name: Add requirements.txt
+      copy:
+        src: ~/home/vagrant/project/app/samples/bookinfo/src/requirements.txt
+        dest: /opt/microservices/
+
+    - name: run productpage.py script
+      shell: python3 /opt/microservices/productpage.py 9080
+      async: 10000000000
+
+
+# Reviews Play installs the required software 
+# tasks names are self explanatory
+- hosts: reviews
+  gather_facts: True
+  remote_user: ubuntu
+  become: yes
+  become_method: sudo
+
+  tasks:
+
+    - name: Run command
+      shell: apt  install ruby
+
+    - name: Create directory
+      shell: mkdir -p /opt/ol/wlp/usr/servers/defaultServer/
+
+    - name: Add server.xml file
+      copy:
+        src: ~/home/vagrant/project/app/samples/bookinfo/src/reviews/reviews-wlpcfg/servers/LibertyProjectServer/server.xml 
+        dest: /opt/ol/wlp/usr/servers/defaultServer/
+ 
+    - name: Run command
+      shell: /opt/ol/wlp/bin/featureUtility installServerFeatures  --acceptLicense /opt/ol/wlp/usr/servers/defaultServer/server.xml && \
+    chmod -R g=rwx /opt/ol/wlp/output/defaultServer/
+
+    - name: run productpage.py script
+      shell: ruby /opt/microservices/details.rb 9080
+
+
+ 

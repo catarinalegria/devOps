@@ -1,0 +1,276 @@
+# Product Page Play that installs the required software 
+# tasks names are self explanatory
+- hosts: productpage
+  gather_facts: True
+  remote_user: ubuntu
+  become: true
+  become_method: sudo
+
+  environment: 
+    FLOOD_FACTOR: 0
+
+  tasks: 
+
+    #- name: Run command
+    #  shell: apt-get update
+
+    - name: Update and upgrade apt packages
+      become: true
+      apt:
+        upgrade: yes
+        update_cache: yes
+   
+    - name: Install the package "python"
+      become: true
+      ansible.builtin.apt:
+        pkg: python3.7
+    
+    - name: Install the package "python3-pip"
+      become: true
+      ansible.builtin.apt:
+        name: python3-pip
+
+
+    - name: Add requirements.txt file
+      become: true
+      copy:
+        src: /home/vagrant/project/app/samples/bookinfo/src/productpage/requirements.txt
+        dest: /opt/microservices/
+   
+    - name: Run command
+      become: true
+      shell: pip3 install -vvv --no-cache-dir -r /opt/microservices/requirements.txt
+
+    
+    - name: Add test-requirements.txt file
+      become: true
+      copy:
+        src: /home/vagrant/project/app/samples/bookinfo/src/productpage/test-requirements.txt
+        dest: /opt/microservices/
+    
+    - name: Run command
+      become: true
+      shell: pip3 install --no-cache-dir -r /opt/microservices/test-requirements.txt
+
+    - name: Add productpage.py file
+      become: true
+      copy:
+        src: /home/vagrant/project/app/samples/bookinfo/src/productpage/productpage.py
+        dest: /opt/microservices/
+      
+    #- name: Add tests/unit/*
+    #  copy:
+    #    src: /home/vagrant/project/app/samples/bookinfo/src/productpage/tests/unit/*
+    #    dest: /opt/microservices/
+
+    - name: Add templates
+      become: true
+      copy:
+        src: /home/vagrant/project/app/samples/bookinfo/src/productpage/templates
+        dest: /opt/microservices/
+
+    - name: Add static
+      become: true
+      copy:
+        src: /home/vagrant/project/app/samples/bookinfo/src/productpage/static
+        dest: /opt/microservices/
+
+    - name: run productpage.py script
+      become: true
+      shell: python3 /opt/microservices/productpage.py 9080
+      async: 1000000
+      poll: 0
+
+
+# Details Play that installs the required software 
+# tasks names are self explanatory
+- hosts: details
+  gather_facts: True
+  remote_user: ubuntu
+  become: yes
+  become_method: sudo
+
+  environment: 
+    SERVICE_VERSION: v1
+    ENABLE_EXTERNAL_BOOK_SERVICE: false
+
+  tasks:
+
+    - name: Update and upgrade apt packages
+      become: true
+      apt:
+        upgrade: yes
+        update_cache: yes
+   
+    - name: Install the package "ruby"
+      become: true
+      ansible.builtin.apt:
+        pkg: ruby2.7
+
+
+    - name: Add details.rb file
+      copy:
+        src: /home/vagrant/project/app/samples/bookinfo/src/details/details.rb
+        dest: /opt/microservices/
+ 
+    - name: run details.rb script
+      shell: ruby /opt/microservices/details.rb 9080
+      async: 1000000
+      poll: 0
+
+# Ratings Play that installs the required software 
+# tasks names are self explanatory
+- hosts: ratings
+  gather_facts: True
+  remote_user: ubuntu
+  become: yes
+  become_method: sudo
+
+  environment: 
+    SERVICE_VERSION: v1
+
+  tasks:
+
+    - name: Update and upgrade apt packages
+      become: true
+      apt:
+        upgrade: yes
+        update_cache: yes
+
+    - name: Install the package "node"
+      become: true
+      ansible.builtin.apt:
+        pkg: nodejs
+
+    - name: Install the package "npm"
+      become: true
+      ansible.builtin.apt:
+        pkg: npm
+
+    - name: run "apt-get install curl --no-install-recommends -y "
+      shell: apt-get install curl --no-install-recommends -y 
+
+    - name: run "rm -rf /var/lib/apt/lists/*"
+      shell: rm -rf /var/lib/apt/lists/*
+    
+    - name: Update apt packages
+      become: true
+      apt:
+        update_cache: yes
+
+    - name: Add package.json file
+      copy:
+        src: /home/vagrant/project/app/samples/bookinfo/src/ratings/package.json
+        dest: /opt/microservices/
+
+    - name: Add ratings.js file
+      copy:
+        src: /home/vagrant/project/app/samples/bookinfo/src/ratings/ratings.js
+        dest: /opt/microservices/
+
+    - name: run "npm install"
+      shell: npm install
+      args:
+        chdir: /opt/microservices
+ 
+    - name: run ratings.js script
+      shell: node /opt/microservices/ratings.js 9080
+      async: 1000000
+      poll: 0
+
+
+# Reviews Play installs the required software 
+# tasks names are self explanatory
+- hosts: reviews
+  gather_facts: True
+  remote_user: ubuntu
+  become: yes
+  become_method: sudo
+
+  vars:
+    docker_compose_version: "1.27.4"
+
+  tasks:
+
+    - name: Add reviews directory
+      become: true
+      copy:
+        src: /home/vagrant/project/app/samples/bookinfo/src/reviews
+        dest: ./
+    
+    - name: Update apt cache
+      apt: update_cache=yes cache_valid_time=3600
+
+    - name: Upgrade all apt packages
+      apt: upgrade=dist
+
+    - name: Install dependencies
+      apt:
+        name: "{{ packages }}"
+        state: present
+        update_cache: yes
+      vars:
+        packages:
+        - apt-transport-https
+        - ca-certificates
+        - curl
+        - software-properties-common
+        - gnupg-agent
+      
+    - name: Add an apt signing key for Docker
+      apt_key:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        state: present
+
+    - name: Add apt repository for stable version
+      apt_repository:
+        repo: deb [arch=amd64] https://download.docker.com/linux/ubuntu focal stable
+        state: present
+
+    - name: Install Docker
+      apt:
+        name: "{{ packages }}"
+        state: present
+        update_cache: yes
+      vars:
+        packages:
+        - docker-ce
+        - docker-ce-cli 
+        - containerd.io
+
+    - name: Add user to docker group
+      user:
+        name: "{{ansible_user}}"
+        group: docker
+
+    - name: Download docker-compose {{ docker_compose_version }}
+      get_url:
+        url : https://github.com/docker/compose/releases/download/{{ docker_compose_version }}/docker-compose-Linux-x86_64
+        dest: ~/docker-compose
+        mode: '+x'
+
+    - name: Check docker-compose exists
+      stat: path=~/docker-compose
+      register: docker_compose
+
+    - name: Move docker-compose to /usr/local/bin/docker-compose
+      command: mv ~/docker-compose /usr/local/bin/docker-compose
+      when: docker_compose.stat.exists
+    
+    - name: build app with gradle 
+      shell: docker run --rm -u root -v "$(pwd)":/home/gradle/project -w /home/gradle/project gradle:4.8.1 gradle clean build
+      args:
+        chdir: /home/ubuntu/reviews
+
+    - name: build docker image 
+      shell: docker build -t reviews .
+      args:
+        chdir: /home/ubuntu/reviews/reviews-wlpcfg
+
+    - name: run docker image 
+      shell: docker run -dp 9080:9080 reviews
+      async: 1000000
+      poll: 0
+    
+
+
